@@ -19,11 +19,34 @@ public class ShoppingCartController {
     private ShoppingCartService shoppingCartService;
 
     @PostMapping("/add")
-    public R<String> addShoppingCart(@RequestBody ShoppingCart shoppingCart) {
+    public R<ShoppingCart> addShoppingCart(@RequestBody ShoppingCart shoppingCart) {
+//        先设置id
+        long currentId = 1;
+        shoppingCart.setUserId(currentId);
+//        查询是否存在相同菜品或套餐的购物车
         LambdaQueryWrapper<ShoppingCart> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ShoppingCart::getDishId, shoppingCart);
-        shoppingCart.setUserId(1L);
-        shoppingCartService.saveOrUpdate(shoppingCart);
-        return R.success("添加成功");
+        queryWrapper.eq(ShoppingCart::getUserId, currentId);
+        if(shoppingCart.getDishId() != null){
+            queryWrapper.eq(ShoppingCart::getDishId, shoppingCart.getDishId());
+        } else {
+            queryWrapper.eq(ShoppingCart::getSetmealId, shoppingCart.getSetmealId());
+        }
+        ShoppingCart cart = shoppingCartService.getOne(queryWrapper);
+        if(cart == null){
+            if(shoppingCart.getNumber() ==null) {
+                shoppingCart.setNumber(1);
+            }
+            shoppingCartService.save(shoppingCart);
+            cart = shoppingCart;
+        } else {
+            if(shoppingCart.getNumber() ==null) {
+                cart.setNumber(cart.getNumber()+ 1);
+            } else {
+                cart.setNumber(cart.getNumber() + shoppingCart.getNumber());
+            }
+            shoppingCartService.saveOrUpdate(cart);
+        }
+
+        return R.success(cart);
     }
    }
