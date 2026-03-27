@@ -6,10 +6,9 @@ import org.example.common.R;
 import org.example.entity.ShoppingCart;
 import org.example.service.ShoppingCartService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/shoppingCart")
@@ -49,4 +48,16 @@ public class ShoppingCartController {
 
         return R.success(cart);
     }
+    @GetMapping("/list")
+    public R<List<ShoppingCart>> shoppingCartList(){
+        long currentId = 1;
+        LambdaQueryWrapper<ShoppingCart> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ShoppingCart::getUserId, currentId);
+        queryWrapper.orderByDesc(ShoppingCart::getCreateTime);
+//        查询购物车列表
+        List<ShoppingCart> list = shoppingCartService.list(queryWrapper);
+        return R.success(list);
+    }
    }
+
+
