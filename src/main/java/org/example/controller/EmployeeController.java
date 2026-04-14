@@ -11,7 +11,6 @@ import org.example.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
-import redis.clients.jedis.Jedis;
 
 import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
@@ -23,16 +22,6 @@ public class EmployeeController {
 
     @Autowired
     private EmployeeService employeeService;
-
-    @GetMapping("/test")
-    public R<String> test(){
-        Jedis jedis = new Jedis("127.0.0.1",6379);
-        jedis.set(  "aaa",  "123456");
-        String aaa = jedis.get("aaa");
-        System.out.println(aaa);
-        jedis.close();
-        return R.success("测试成功");
-    }
 
     /**
      * 员工登录
