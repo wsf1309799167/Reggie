@@ -1,5 +1,8 @@
 package org.example.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.cache.annotation.CachingConfigurerSupport;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
@@ -34,25 +37,16 @@ public class RedisConfig extends CachingConfigurerSupport {
     public RedisTemplate<Object, Object> redisTemplate(RedisConnectionFactory connectionFactory) {
         RedisTemplate<Object, Object> redisTemplate = new RedisTemplate<>();
 
-        // 设置key的序列化方式为字符串序列化
-        // 这样Redis中的key就是可读的字符串，而不是乱码
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance, ObjectMapper.DefaultTyping.NON_FINAL);
+
+        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
+
         redisTemplate.setKeySerializer(new StringRedisSerializer());
-
-        // 设置value的序列化方式为JSON序列化
-        // 使用GenericJackson2JsonRedisSerializer可以将对象自动序列化为JSON字符串
-        // 支持复杂对象的存储和读取，包括嵌套对象、集合等
-        redisTemplate.setValueSerializer(new GenericJackson2JsonRedisSerializer());
-
-        // 设置Hash结构中key的序列化方式为字符串序列化
-        // Hash是Redis中的一种数据结构，类似于Java的Map
+        redisTemplate.setValueSerializer(serializer);
         redisTemplate.setHashKeySerializer(new StringRedisSerializer());
-
-        // 设置Hash结构中value的序列化方式为JSON序列化
-        // 这样Hash中的value也可以存储复杂对象
-        redisTemplate.setHashValueSerializer(new GenericJackson2JsonRedisSerializer());
-
-        // 设置Redis连接工厂
-        // RedisTemplate需要通过连接工厂来与Redis服务器建立连接
+        redisTemplate.setHashValueSerializer(serializer);
         redisTemplate.setConnectionFactory(connectionFactory);
 
         return redisTemplate;
@@ -68,10 +62,16 @@ public class RedisConfig extends CachingConfigurerSupport {
      */
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance, ObjectMapper.DefaultTyping.NON_FINAL);
+
+        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
+
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofHours(1))
                 .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer()))
-                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer()))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(serializer))
                 .disableCachingNullValues();
 
         return RedisCacheManager.builder(connectionFactory)
